@@ -17,13 +17,6 @@ public:
 
 	const static constexpr int grabCurrent = 20;
 	const static constexpr int grabPdpChannel = 14;
-	const static constexpr int ledPdpChannel = 13;
-
-	const static constexpr int driveOneAxisButton = 1;
-	const static constexpr int driveXYButton = 1;
-	const static constexpr int cancelButton = 3;
-	const static constexpr int grabButton = 1;
-	const static constexpr int liftButton = 2;
 
 	const static constexpr int ultrasonicPin = 0;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
@@ -42,19 +35,22 @@ public:
 
 	const static constexpr float xDeadZone = .2;
 	const static constexpr float xMax = 1;
-	const static constexpr int xDegree = 1;
+	const static constexpr int xDegree = 3;
 	const static constexpr float yDeadZone = .2;
 	const static constexpr float yMax = 1;
-	const static constexpr int yDegree = 1;
+	const static constexpr int yDegree = 3;
 	const static constexpr float zDeadZone = .2;
 	const static constexpr float zMax = .5;
-	const static constexpr int zDegree = 1;
+	const static constexpr int zDegree = 3;
 	const static constexpr float grabDeadZone = .2;
 	const static constexpr float grabMax = 1;
 	const static constexpr int grabDegree = 3;
 	const static constexpr float liftDeadZone = .2;
 	const static constexpr float liftMax = 1;
 	const static constexpr int liftDegree = 3;
+
+
+	const static constexpr int cancelButton = 3;
 
 	Constants() {}
 

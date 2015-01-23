@@ -11,14 +11,16 @@
 #include "Constants.cpp"
 #include "Switch.h"
 
-inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, uint32_t isGrabbingPtr ...) {
+inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, ...) {
 	Joystick *joystick = (Joystick *) joystickPtr;
 	Talon *grabTalon = (Talon *) grabTalonPtr;
 	Switch *grabInnerLimit = (Switch *) grabInnerLimitPtr;
 	PowerDistributionPanel *pdp = (PowerDistributionPanel *) pdpPtr;
-	bool isGrabbing = *((bool *) isGrabbingPtr);
 
-	isGrabbing = true;
+	/*for (int i = 1; i < 1000; i++) {
+		grabTalon.Set(i/1000.0);
+		Wait(1.0/2000);
+	}*/
 
 	while (pdp->GetCurrent(Constants::grabPdpChannel) < Constants::grabCurrent && grabInnerLimit->Get() == false && joystick->GetRawButton(Constants::cancelButton) == false) {
 		grabTalon->Set(1);
@@ -26,19 +28,15 @@ inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr,
 	}
 
 	grabTalon->Set(0);
-	isGrabbing = false;
 }
 
-inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, uint32_t liftEncoderPtr, uint32_t liftLowerLimitPtr, uint32_t liftUpperLimitPtr, uint32_t heightPtr, uint32_t isLiftingPtr ...) {
+inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, uint32_t liftEncoderPtr, uint32_t liftLowerLimitPtr, uint32_t liftUpperLimitPtr, uint32_t heightPtr, ...) {
 	double height = *((double *) heightPtr);
 	Joystick *joystick = (Joystick *) joystickPtr;
 	Talon *liftTalon = (Talon *) liftTalonPtr;
 	Encoder *liftEncoder = (Encoder *) liftEncoderPtr;
 	Switch *liftLowerLimit = (Switch *) liftLowerLimitPtr;
 	Switch *liftUpperLimit = (Switch *) liftLowerLimitPtr;
-	bool isLifting = *((bool *) isLiftingPtr);
-
-	isLifting = true;
 
 	if (liftEncoder->Get() > height * 20) {
 		while (liftEncoder->Get() > height * 200 && liftUpperLimit->Get() == false && joystick->GetRawButton(Constants::cancelButton) == false) {
@@ -54,21 +52,20 @@ inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, 
 	}
 
 	liftTalon->Set(0);
-	isLifting = false;
 }
 
 
-Pickup::Pickup(Talon &grabTalonPtr, Switch &grabInnerLimitPtr, Switch &grabOuterLimitPtr, Talon &liftTalonPtr, Encoder &liftEncoderPtr, Switch &liftInnerLimitPtr, Switch &liftOuterLimitPtr, PowerDistributionPanel &pdpPtr):
+Pickup::Pickup(Talon &grabTalonPtr):
 		grabTalon(grabTalonPtr),
-		grabInnerLimit(grabInnerLimitPtr),
-		grabOuterLimit(grabOuterLimitPtr),
+		grabInnerLimit(Constants::grabInnerLimitPin),
+		grabOuterLimit(Constants::grabOuterLimitPin),
 		grabberPositionTask("grabberPosition", (FUNCPTR) grabberPositionTaskFunc),
-		liftTalon(liftTalonPtr),
-		liftEncoder(liftEncoderPtr),
-		liftInnerLimit(liftInnerLimitPtr),
-		liftOuterLimit(liftOuterLimitPtr),
+		liftTalon(Constants::liftTalonPin),
+		liftEncoder(Constants::liftEncoderAPin, Constants::liftEncoderBPin),
+		liftInnerLimit(Constants::liftInnerLimitPin),
+		liftOuterLimit(Constants::liftOuterLimitPin),
 		lifterPositionTask("lifterPosition", (FUNCPTR) lifterPositionTaskFunc),
-		pdp(pdpPtr)
+		pdp()
 {
 }
 
@@ -92,8 +89,8 @@ void Pickup::setGrabber(float power)
 	}
 }
 
-void Pickup::grabberPosition(bool &isGrabbing, Joystick &joystick) {
-	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp, (uint32_t) &isGrabbing);
+void Pickup::grabberPosition(double &width, Joystick &joystick) {
+	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp);
 }
 
 void Pickup::setLifter(float power)
@@ -116,7 +113,7 @@ void Pickup::setLifter(float power)
 	}
 }
 
-void Pickup::lifterPosition(double &height, bool &isLifting, Joystick &joystick) {
-	lifterPositionTask.Start((uint32_t) &joystick, (uint32_t) &liftTalon, (uint32_t) &liftEncoder, (uint32_t) &liftInnerLimit, (uint32_t) &liftOuterLimit, (uint32_t) &height, (uint32_t) &isLifting);
+void Pickup::lifterPosition(double &height, Joystick &joystick) {
+	lifterPositionTask.Start((uint32_t) &joystick, (uint32_t) &liftTalon, (uint32_t) &liftEncoder, (uint32_t) &liftInnerLimit, (uint32_t) &liftOuterLimit, (uint32_t) &height);
 }
 
