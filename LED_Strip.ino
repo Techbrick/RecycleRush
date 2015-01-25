@@ -2,7 +2,7 @@
 #include <FastLED.h>
 #define NUM_LEDS 80 
 #define NUM_CHASE 10
-#define NUM_DANCES 7
+#define NUM_DANCES 8
 int green[NUM_CHASE];
 
 CRGB leds[NUM_LEDS];
@@ -35,7 +35,7 @@ void loop()
       allRed();
       break;
     case 1:
-      greenScroll();
+      allGreen();
       break;
     case 2:
       rainbow();
@@ -52,6 +52,9 @@ void loop()
     case 6:
       alexis();
       break;
+     case 7:
+       greenScroll();
+       break;
   }
   
   FastLED.show();
@@ -60,30 +63,41 @@ void loop()
 void receiveEvent(int howMany)
 {
   while (Wire.available()) {
-    char c = Wire.read();
-    if ((int) c - 48 < NUM_DANCES) {
-      dance = (int) c - 48;
-      count = 0;
+    int c = Wire.read();
+    if (c < NUM_DANCES) {
+      if (c != dance) {
+        dance = c;
+        count = 0;
+      }
     }
   }
 }
 
 void allRed()
 {  
-  if(count == 0) {
+  /*if(count == 0) {
     for (int i = 0; i < NUM_LEDS; i++) {
       leds[i].setRGB((int)random(256),(int)random(256),(int)random(256));
     }
   }
   else
-  {
+  {*/
     for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i].setRGB(0,0,0);
+      leds[i].setRGB(255,0,0);
     } 
-  }
+  //}
   
   delay(60);
-  count = (count + 1) % 2;
+  //count = (count + 1) % 2;
+}
+
+void allGreen()
+{  
+  for (int i = 0; i < NUM_LEDS; i++) {
+      leds[i].setRGB(0,255,0);
+  } 
+  
+  delay(60);
 }
 
 void greenScroll()

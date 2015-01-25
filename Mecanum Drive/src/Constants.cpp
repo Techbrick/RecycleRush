@@ -15,12 +15,13 @@ public:
 	const static constexpr int driveStickChannel = 0;
 	const static constexpr int grabStickChannel	= 1;
 
-	const static constexpr int grabCurrent = 20;
+	const static constexpr float grabDelay = .07;
+	const static constexpr int grabCurrent = 10;
 	const static constexpr int grabPdpChannel = 14;
 	const static constexpr int ledPdpChannel = 13;
 
 	const static constexpr int driveOneAxisButton = 1;
-	const static constexpr int driveXYButton = 1;
+	const static constexpr int driveXYButton = 2;
 	const static constexpr int cancelButton = 3;
 	const static constexpr int grabButton = 1;
 	const static constexpr int liftButton = 2;
