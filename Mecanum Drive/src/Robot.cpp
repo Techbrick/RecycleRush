@@ -17,13 +17,15 @@ class Robot: public SampleRobot
 	AnalogInput prox;	// ultrasonic proximity sensor
 	Talon grabTalon;//motor controller for grabber
 	Switch grabInnerLimit;//controls at what point grabber should stop
-	Switch grabOuterLimit;//contrls at what point grabber should stop
+	Switch grabOuterLimit;//controls at what point grabber should stop
 	Talon liftTalon;//motor controller for lift
 	Encoder liftEncoder;//tells how high the lift is
 	Switch liftInnerLimit;//stops at the very top or at the very bottom of the lift
 	Switch liftOuterLimit;//stops at the very top or at the very bottom of the lift
 	PowerDistributionPanel pdp;
+	Gyro gyro;
 	Pickup pickup;
+
 
 
 public:
@@ -41,6 +43,7 @@ public:
 		liftInnerLimit(Constants::liftInnerLimitPin),
 		liftOuterLimit(Constants::liftOuterLimitPin),
 		pdp(),
+		gyro(0),
 		pickup(grabTalon, grabInnerLimit, grabOuterLimit, liftTalon, liftEncoder, liftInnerLimit, liftOuterLimit, pdp)
 {
 		robotDrive.SetExpiration(0.1);	// safety feature
@@ -54,8 +57,9 @@ public:
 	void OperatorControl()//teleop code
 	{
 		robotDrive.SetSafetyEnabled(false);
+		gyro.Reset();
 		double height = 0; //variable for lifting thread
-		uint8_t toSend[10];//array of bytes to send over I2C 
+		uint8_t toSend[10];//array of bytes to send over I2C
 		uint8_t toReceive[10];//array of bytes to receive over I2C
 		uint8_t numToSend = 1;//number of bytes to send
 		uint8_t numToReceive = 0;//number of bytes to receive
@@ -63,6 +67,10 @@ public:
 		i2c.Transaction(toSend, 1, toReceive, 0);//send over I2C
 		bool isGrabbing = false;//whether or not grabbing thread is running
 		bool isLifting = false;//whether or not lifting thread is running
+		float driveX = 0;
+		float driveY = 0;
+		float driveZ = 0;
+		float driveGyro = 0;
 
 		while (IsOperatorControl() && IsEnabled())
 		{
@@ -72,46 +80,54 @@ public:
 			toSend[0] = 1;
 			numToSend = 1;
 
-			if (driveStick.GetRawButton(Constants::driveOneAxisButton)) {	// if the trigger is pressed
-				toSend[0] = 2;
-				if (fabs(driveStick.GetX()) > fabs(driveStick.GetY()) && fabs(driveStick.GetX()) > fabs(driveStick.GetZ())) {
-					robotDrive.MecanumDrive_Cartesian(scaleJoysticks(driveStick.GetX(), Constants::xDeadZone, Constants::xMax, Constants::xDegree), 0, 0, 0);	// drive with filtered X-only input
+
+			driveX = driveStick.GetRawAxis(Constants::driveXAxis);//starts driving code
+			driveY = driveStick.GetRawAxis(Constants::driveYAxis);
+			driveZ = driveStick.GetRawAxis(Constants::driveZAxis);
+			driveGyro = gyro.GetAngle();
+
+
+
+			if (driveStick.GetRawButton(Constants::driveOneAxisButton)) {//if X is greater than Y and Z, then it will only go in the direction of X
+				if (driveX > driveY && driveX > driveZ) {
+					driveY = 0;
+					driveZ = 0;
 				}
-				else if (fabs(driveStick.GetY()) > fabs(driveStick.GetX()) && fabs(driveStick.GetY()) > fabs(driveStick.GetZ())) {
-					robotDrive.MecanumDrive_Cartesian(0, scaleJoysticks(driveStick.GetY(), Constants::yDeadZone, Constants::yMax, Constants::yDegree), 0, 0);	// drive with filtered Y-only input
+				else if (driveY > driveX && driveY > driveZ) {//if Y is greater than X and Z, then it will only go in the direction of Y
+					driveX = 0;
+					driveZ = 0;
 				}
-				else {
-					robotDrive.MecanumDrive_Cartesian(0, 0, scaleJoysticks(driveStick.GetZ(), Constants::zDeadZone, Constants::zMax, Constants::zDegree), 0);	// drive with filtered Z-only input
+				else {//if Z is greater than X and Y, then it will only go in the direction of Z
+					driveX = 0;
+					driveY = 0;
 				}
 			}
-			else if (driveStick.GetRawButton(Constants::driveXYButton)) {	// if the thumb is pressed
-				toSend[0] = 3;//set value to send to the arduino to 3
-				numToSend = 1;//send 1 byte
-				robotDrive.MecanumDrive_Cartesian(scaleJoysticks(driveStick.GetX(), Constants::xDeadZone, Constants::xMax, Constants::xDegree), scaleJoysticks(driveStick.GetY(),Constants::yDeadZone, Constants::yMax, Constants::yDegree), 0, 0);	// drive with filtered XY-only input
+
+			if (driveStick.GetRawButton(Constants::driveXYButton)) {//Z lock; only lets X an Y function
+				driveZ = 0;//Stops Z while Z lock is pressed
 			}
-			else if (driveStick.GetRawButton(5)){
-				toSend[0] = 4;
-				numToSend =1;
+
+			if (driveStick.GetRawButton(Constants::driveFieldLockButton)) {//robot moves based on the orientation of the field
+				driveGyro = 0;//gyro stops while field lock is enabled
 			}
-			else if (driveStick.GetRawButton(3)){
-				toSend[0] = 5;
-				numToSend = 1;
-			}
-			else if (driveStick.GetRawButton(4)){
-				toSend[0] = 6;
-				numToSend = 1;
-			}
-			else {	// if no drive restricting buttons are pressed
-				robotDrive.MecanumDrive_Cartesian(scaleJoysticks(driveStick.GetX(), Constants::xDeadZone, Constants::xMax, Constants::xDegree), scaleJoysticks(driveStick.GetY(),Constants::yDeadZone, Constants::yMax, Constants::yDegree), scaleJoysticks(driveStick.GetZ(),Constants::zDeadZone, Constants::zMax, Constants::zDegree), 0);	// drive with filtered input
-			}
+
+			driveX = scaleJoysticks(driveX, Constants::xDeadZone, Constants::xMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::xDegree);//sets scale based on how far x axis is pressed on joystick
+			driveY = scaleJoysticks(driveY, Constants::yDeadZone, Constants::yMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::yDegree);//sets scale based on how far y axis is pressed
+			driveZ = scaleJoysticks(driveZ, Constants::zDeadZone, Constants::zMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::zDegree);
+			robotDrive.MecanumDrive_Cartesian(driveX, driveY, driveZ, driveGyro);//makes the robot drive
+
+
+
+
+
 			pickup.setGrabber(scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree));
 			pickup.setLifter(scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
 
 
-			if (grabStick.GetRawButton(1)) {//if grab button is pressed
+			if (grabStick.GetRawButton(Constants::grabButton)) {//if grab button is pressed
 				pickup.grabberPosition(isGrabbing, grabStick);//start grabber thread
 			}
-			if (grabStick.GetRawButton(2)) {//if lift button is pressed
+			if (grabStick.GetRawButton(Constants::liftButton)) {//if lift button is pressed
 				pickup.lifterPosition(height, isLifting, grabStick);//start lifting thread
 			}
 
@@ -137,7 +153,7 @@ public:
 
 	void Autonomous()
 	{
-		float power = 0; 
+		float power = 0;
 
 		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 2) {	// while the nearest object is closer than 3 feet
 		}

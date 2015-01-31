@@ -12,6 +12,11 @@ public:
 	const static constexpr int frontRightPin = 1;
 	const static constexpr int rearRightPin	= 0;
 
+	const static constexpr int driveXAxis = 0;
+	const static constexpr int driveYAxis = 1;
+	const static constexpr int driveZAxis = 5;
+	const static constexpr int driveThrottleAxis = 2;
+
 	const static constexpr int driveStickChannel = 0;
 	const static constexpr int grabStickChannel	= 1;
 
@@ -20,13 +25,14 @@ public:
 	const static constexpr int grabPdpChannel = 14;
 	const static constexpr int ledPdpChannel = 13;
 
-	const static constexpr int driveOneAxisButton = 1;
-	const static constexpr int driveXYButton = 2;
+	const static constexpr int driveOneAxisButton = 7;
+	const static constexpr int driveXYButton = 5;
+	const static constexpr int driveFieldLockButton = 1;
 	const static constexpr int cancelButton = 3;
 	const static constexpr int grabButton = 1;
 	const static constexpr int liftButton = 2;
 
-	const static constexpr int ultrasonicPin = 0;
+	const static constexpr int ultrasonicPin = 3;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
 
 	const static constexpr int grabTalonPin = 4;
@@ -56,6 +62,7 @@ public:
 	const static constexpr float liftDeadZone = .2;
 	const static constexpr float liftMax = 1;
 	const static constexpr int liftDegree = 3;
+
 
 	Constants() {}
 
