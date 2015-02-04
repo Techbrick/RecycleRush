@@ -41,7 +41,7 @@ void loop()
       rainbow();
       break;
     case 3:
-      countBar();
+      scrollIn();
       break;
     case 4:
       tyson();
@@ -208,4 +208,19 @@ void alexis()
   
   count = (count + 1) % NUM_LEDS;
   delay(15);  
+}
+
+void scrollIn() {
+  int space = 8;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i].setRGB(0,0,0);
+  }
+  for (int i = count; i < NUM_LEDS/2; i += space) {
+    leds[i].setRGB(0,0,255);
+  }
+  for (int i = NUM_LEDS-count; i > NUM_LEDS/2; i -= space) {
+    leds[i].setRGB(0,0,255);
+  }
+  count = (count + 1) % space;
+  delay(80);
 }

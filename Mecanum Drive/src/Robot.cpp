@@ -1,4 +1,5 @@
 #include "WPILib.h"
+#include "Buttons/JoystickButton.h"
 #include "pthread.h"
 #include "Constants.cpp"
 #include "Pickup.h"
@@ -87,13 +88,22 @@ public:
 			driveGyro = gyro.GetAngle();
 
 
+			uint32_t stickPtr = (uint32_t) (&driveStick);
+			GenericHID *stick = (GenericHID *) stickPtr;
+			JoystickButton trigger(stick, 5);
+			SmartDashboard::PutNumber("Num Grab Buttons", grabStick.GetButtonCount());
+			SmartDashboard::PutNumber("Num Drive Buttons", driveStick.GetButtonCount());
+
 
 			if (driveStick.GetRawButton(Constants::driveOneAxisButton)) {//if X is greater than Y and Z, then it will only go in the direction of X
-				if (driveX > driveY && driveX > driveZ) {
+				toSend[0] = 3;
+				numToSend = 1;
+
+				if (fabs(driveX) > fabs(driveY) && fabs(driveX) > fabs(driveZ)) {
 					driveY = 0;
 					driveZ = 0;
 				}
-				else if (driveY > driveX && driveY > driveZ) {//if Y is greater than X and Z, then it will only go in the direction of Y
+				else if (fabs(driveY) > fabs(driveX) && fabs(driveY) > fabs(driveZ)) {//if Y is greater than X and Z, then it will only go in the direction of Y
 					driveX = 0;
 					driveZ = 0;
 				}
@@ -111,8 +121,8 @@ public:
 				driveGyro = 0;//gyro stops while field lock is enabled
 			}
 
-			driveX = scaleJoysticks(driveX, Constants::xDeadZone, Constants::xMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::xDegree);//sets scale based on how far x axis is pressed on joystick
-			driveY = scaleJoysticks(driveY, Constants::yDeadZone, Constants::yMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::yDegree);//sets scale based on how far y axis is pressed
+			driveX = scaleJoysticks(driveX, Constants::xDeadZone, Constants::xMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::xDegree);
+			driveY = scaleJoysticks(driveY, Constants::yDeadZone, Constants::yMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::yDegree);
 			driveZ = scaleJoysticks(driveZ, Constants::zDeadZone, Constants::zMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::zDegree);
 			robotDrive.MecanumDrive_Cartesian(driveX, driveY, driveZ, driveGyro);//makes the robot drive
 
@@ -131,10 +141,11 @@ public:
 				pickup.lifterPosition(height, isLifting, grabStick);//start lifting thread
 			}
 
-			if (isGrabbing) {//if the grabbing thread is running
-				toSend[0] = 7;//sends 7
+			if (isLifting) {//if the grabbing thread is running
+				toSend[0] = 3;//sends 7
 				numToSend = 1;//sends 1 byte to I2C
 			}
+
 
 			float distance = prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12;	// distance from ultrasonic sensor
 			float rotations = (float) liftEncoder.Get() / Constants::liftEncoderTicks;	// rotations on encoder

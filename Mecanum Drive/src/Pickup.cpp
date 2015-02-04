@@ -103,19 +103,19 @@ void Pickup::grabberPosition(bool &isGrabbing, Joystick &joystick) {//start grab
 void Pickup::setLifter(float power)//moves lifter and checks limit switches
 {
 	if (power > 0) {	// if it wants to move out
-		if (grabOuterLimit.Get() == false) {	// if it is not already all the way out
-			grabTalon.Set(power);	// move out
+		if (liftOuterLimit.Get() == false) {	// if it is not already all the way out
+			liftTalon.Set(power);	// move out
 		}
 		else {
-			grabTalon.Set(0);
+			liftTalon.Set(0);
 		}
 	}
 	else {	// if it wants to move in
-		if (grabInnerLimit.Get() == false) {	//if it is not already all the way in
-			grabTalon.Set(power);	// move in
+		if (liftInnerLimit.Get() == false) {	//if it is not already all the way in
+			liftTalon.Set(power);	// move in
 		}
 		else {
-			grabTalon.Set(0);
+			liftTalon.Set(0);
 		}
 	}
 }
