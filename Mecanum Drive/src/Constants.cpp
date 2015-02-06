@@ -5,6 +5,8 @@
  *      Author: Mitchell Roberts
  */
 
+#include <cmath>
+
 class Constants {
 public:
 
@@ -92,6 +94,25 @@ public:
 
 
 	Constants() {}
+
+	// scale joystick input to avoid crazy driving
+	static float scaleJoysticks(float power, float dead, float max, int degree) {
+		if (degree < 0) {	// make sure degree is positive
+				degree = 1;
+			}
+			if (degree % 2 == 0) {	// make sure degree is odd
+				degree++;
+			}
+			if (fabs(power) < dead) {	// if joystick input is in dead zone, return 0
+				return 0;
+			}
+			else if  (power > 0) {	// if it is outside of the dead zone, then the output is a function of specified degree centered at the end of the dead zone
+				return (max * pow(power - dead, degree) / pow(1 - dead, degree));
+			}
+			else {
+				return (max * pow(power + dead, degree) / pow(1 - dead, degree));
+			}
+	}
 
 };
 

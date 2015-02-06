@@ -121,18 +121,17 @@ public:
 				driveGyro = 0;//gyro stops while field lock is enabled
 			}
 
-			driveX = scaleJoysticks(driveX, Constants::driveXDeadZone, Constants::driveXMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveXDegree);
-			driveY = scaleJoysticks(driveY, Constants::driveYDeadZone, Constants::driveYMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveYDegree);
-			driveZ = scaleJoysticks(driveZ, Constants::driveZDeadZone, Constants::driveZMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveZDegree);
+			driveX = Constants::scaleJoysticks(driveX, Constants::driveXDeadZone, Constants::driveXMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveXDegree);
+			driveY = Constants::scaleJoysticks(driveY, Constants::driveYDeadZone, Constants::driveYMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveYDegree);
+			driveZ = Constants::scaleJoysticks(driveZ, Constants::driveZDeadZone, Constants::driveZMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveZDegree);
 			robotDrive.MecanumDrive_Cartesian(driveX, driveY, driveZ, driveGyro);//makes the robot drive
 
 
 
 
 
-			pickup.setGrabber(scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree));
-			pickup.setLifter(scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
-
+			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree));
+			pickup.setLifter(Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
 
 			if (grabStick.GetRawButton(Constants::grabButton)) {//if grab button is pressed
 				pickup.grabberPosition(isGrabbing, grabStick);//start grabber thread
@@ -211,25 +210,6 @@ public:
 			Wait(.005);
 		} */
 		robotDrive.TankDrive(0.0, 0);	// STOP!!!
-	}
-
-
-	float scaleJoysticks(float power, float dead, float max, int degree) {	// scale joystick input to avoid crazy driving
-		if (degree < 0) {	// make sure degree is positive
-			degree = 1;
-		}
-		if (degree % 2 == 0) {	// make sure degree is odd
-			degree++;
-		}
-		if (fabs(power) < dead) {	// if joystick input is in dead zone, return 0
-			return 0;
-		}
-		else if  (power > 0) {	// if it is outside of the dead zone, then the output is a function of specified degree centered at the end of the dead zone
-			return (max * pow(power - dead, degree) / pow(1 - dead, degree));
-		}
-		else {
-			return (max * pow(power + dead, degree) / pow(1 - dead, degree));
-		}
 	}
 
 };
