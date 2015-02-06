@@ -44,7 +44,7 @@ void loop()
       scrollIn();
       break;
     case 4:
-      tyson();
+       scrollOut();
       break;
     case 5:
       dillon();
@@ -222,5 +222,20 @@ void scrollIn() {
     leds[i].setRGB(0,0,255);
   }
   count = (count + 1) % space;
+  delay(80);
+}
+
+void scrollOut() {
+  int space = 8;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i].setRGB(0,0,0);
+  }
+  for (int i = count; i < NUM_LEDS/2; i += space) {
+    leds[i].setRGB(0,0,255);
+  }
+  for (int i = NUM_LEDS-count; i > NUM_LEDS/2; i -= space) {
+    leds[i].setRGB(0,0,255);
+  }
+  count = (count - 1 + space) % space;
   delay(80);
 }

@@ -31,11 +31,11 @@ class Robot: public SampleRobot
 
 public:
 	Robot() :
-		robotDrive(Constants::frontLeftPin, Constants::rearLeftPin, Constants::frontRightPin, Constants::rearRightPin),//tells the robot where everything is plugged in
-		i2c(I2C::kOnboard,5),
+		robotDrive(Constants::driveFrontLeftPin, Constants::driveRearLeftPin, Constants::driveFrontRightPin, Constants::driveRearRightPin),//tells the robot where everything is plugged in
+		i2c(I2C::kOnboard,Constants::ledAddress),
 		driveStick(Constants::driveStickChannel),
 		grabStick(Constants::grabStickChannel),
-		prox(Constants::ultrasonicPin),
+		prox(Constants::driveUltrasonicPin),
 		grabTalon(Constants::grabTalonPin),
 		grabInnerLimit(Constants::grabInnerLimitPin),
 		grabOuterLimit(Constants::grabOuterLimitPin),
@@ -44,7 +44,7 @@ public:
 		liftInnerLimit(Constants::liftInnerLimitPin),
 		liftOuterLimit(Constants::liftOuterLimitPin),
 		pdp(),
-		gyro(0),
+		gyro(Constants::driveGyroRate),
 		pickup(grabTalon, grabInnerLimit, grabOuterLimit, liftTalon, liftEncoder, liftInnerLimit, liftOuterLimit, pdp)
 {
 		robotDrive.SetExpiration(0.1);	// safety feature
@@ -121,9 +121,9 @@ public:
 				driveGyro = 0;//gyro stops while field lock is enabled
 			}
 
-			driveX = scaleJoysticks(driveX, Constants::xDeadZone, Constants::xMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::xDegree);
-			driveY = scaleJoysticks(driveY, Constants::yDeadZone, Constants::yMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::yDegree);
-			driveZ = scaleJoysticks(driveZ, Constants::zDeadZone, Constants::zMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::zDegree);
+			driveX = scaleJoysticks(driveX, Constants::driveXDeadZone, Constants::driveXMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveXDegree);
+			driveY = scaleJoysticks(driveY, Constants::driveYDeadZone, Constants::driveYMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveYDegree);
+			driveZ = scaleJoysticks(driveZ, Constants::driveZDeadZone, Constants::driveZMax * (.5 - (driveStick.GetRawAxis(Constants::driveThrottleAxis) / 2)), Constants::driveZDegree);
 			robotDrive.MecanumDrive_Cartesian(driveX, driveY, driveZ, driveGyro);//makes the robot drive
 
 
@@ -142,7 +142,12 @@ public:
 			}
 
 			if (isLifting) {//if the grabbing thread is running
-				toSend[0] = 3;//sends 7
+				if (liftEncoder.Get() < height * 20) {
+					toSend[0] = 3;
+				}
+				else {
+					toSend[0] = 4;
+				}
 				numToSend = 1;//sends 1 byte to I2C
 			}
 
