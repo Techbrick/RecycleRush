@@ -6,6 +6,7 @@
  */
 
 #include <cmath>
+#include <math.h>
 
 class Constants {
 public:
@@ -16,14 +17,15 @@ public:
 	const static constexpr int driveFrontRightPin = 1;
 	const static constexpr int driveRearRightPin = 0;
 	const static constexpr int grabTalonPin = 5;
-	const static constexpr int liftTalonPin = 4;
+	const static constexpr int liftTalonPin1 = 4;
+	const static constexpr int liftTalonPin2 = 6;
 
 
 	//Digital I/O Pins
 	const static constexpr int liftEncoderAPin = 0;
 	const static constexpr int liftEncoderBPin = 1;
-	const static constexpr int liftInnerLimitPin = 2;
-	const static constexpr int liftOuterLimitPin = 3;
+	const static constexpr int liftUpperLimitPin = 2;
+	const static constexpr int liftLowerLimitPin = 3;
 	const static constexpr int grabInnerLimitPin = 4;
 	const static constexpr int grabOuterLimitPin = 5;
 
@@ -37,7 +39,8 @@ public:
 	//PDP Ports
 	const static constexpr int grabPdpChannel = 15;
 	const static constexpr int ledPdpChannel = 13;
-	const static constexpr int liftPdpChannel = 14;
+	const static constexpr int lift1PdpChannel = 14;
+	const static constexpr int lift2PdpChannel = 1;
 
 
 	//Drive Stick
@@ -60,9 +63,9 @@ public:
 
 	//Grab Stick
 	const static constexpr int grabStickChannel	= 1;
-	const static constexpr int pickupCancelButton = 3;
+	const static constexpr int pickupCancelButton = 2;
 	const static constexpr int grabButton = 1;
-	const static constexpr int liftButton = 2;
+	const static constexpr int liftButton = 3;
 
 
 
@@ -85,12 +88,18 @@ public:
 
 	//Sensor Constants
 	const static constexpr int liftEncoderTicks = 360;
+	const static constexpr bool liftEncoderReverse = true;
+	const static constexpr float liftEncoderRadius = 1;
+	const static constexpr float liftEncoderBase = 8;
+	const static constexpr float liftBoxHeight = 12;
 	const static constexpr float grabDelay = .07;
 	const static constexpr int grabCurrent = 10;
 	const static constexpr float liftDelay = .2;
-	const static constexpr int liftCurrent = 20;
+	const static constexpr int liftCurrent = 100;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
 	const static constexpr int ledAddress = 5;
+	const static constexpr double liftMaxTime = 1.0;
+	const static constexpr int liftMaxHeightBoxes = 5;
 
 
 	Constants() {}
@@ -112,6 +121,10 @@ public:
 			else {
 				return (max * pow(power + dead, degree) / pow(1 - dead, degree));
 			}
+	}
+
+	static float encoderToDistance (int value, float ticksPerRotation, float base, float radius) {
+		return value / ticksPerRotation * M_PI * 2 * radius + base;
 	}
 
 };
