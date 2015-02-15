@@ -5,7 +5,6 @@
  *      Author: Mitchell Roberts
  */
 
-#include <cmath>
 #include <math.h>
 
 class Constants {
@@ -17,8 +16,7 @@ public:
 	const static constexpr int driveFrontRightPin = 1;
 	const static constexpr int driveRearRightPin = 0;
 	const static constexpr int grabTalonPin = 5;
-	const static constexpr int liftTalonPin1 = 4;
-	const static constexpr int liftTalonPin2 = 6;
+	const static constexpr int liftTalonPin = 6;
 
 
 	//Digital I/O Pins
@@ -28,6 +26,8 @@ public:
 	const static constexpr int liftLowerLimitPin = 3;
 	const static constexpr int grabInnerLimitPin = 4;
 	const static constexpr int grabOuterLimitPin = 5;
+	const static constexpr int grabEncoderAPin = 6;
+	const static constexpr int grabEncoderBPin = 7;
 
 
 	//Analog In Pins
@@ -66,7 +66,8 @@ public:
 	const static constexpr int pickupCancelButton = 2;
 	const static constexpr int grabButton = 1;
 	const static constexpr int liftButton = 3;
-
+	const static constexpr int liftRampButton = 6;
+	const static constexpr int liftStepButton = 7;
 
 
 	//Joystick Scaling Constants
@@ -88,10 +89,10 @@ public:
 
 	//Sensor Constants
 	const static constexpr int liftEncoderTicks = 360;
+	const static constexpr int grabEncoderTicks = 2048;
 	const static constexpr bool liftEncoderReverse = true;
 	const static constexpr float liftEncoderRadius = 1;
 	const static constexpr float liftEncoderBase = 8;
-	const static constexpr float liftBoxHeight = 12;
 	const static constexpr float grabDelay = .07;
 	const static constexpr int grabCurrent = 10;
 	const static constexpr float liftDelay = .2;
@@ -100,6 +101,10 @@ public:
 	const static constexpr int ledAddress = 5;
 	const static constexpr double liftMaxTime = 1.0;
 	const static constexpr int liftMaxHeightBoxes = 5;
+	const static constexpr int liftRampHeight = 3;
+	const static constexpr int liftStepHeight = 8.5;
+	const static constexpr float liftBoxHeight = 12;
+	const static constexpr float liftBoxLip = 3;
 
 
 	Constants() {}
@@ -107,20 +112,20 @@ public:
 	// scale joystick input to avoid crazy driving
 	static float scaleJoysticks(float power, float dead, float max, int degree) {
 		if (degree < 0) {	// make sure degree is positive
-				degree = 1;
-			}
-			if (degree % 2 == 0) {	// make sure degree is odd
-				degree++;
-			}
-			if (fabs(power) < dead) {	// if joystick input is in dead zone, return 0
-				return 0;
-			}
-			else if  (power > 0) {	// if it is outside of the dead zone, then the output is a function of specified degree centered at the end of the dead zone
-				return (max * pow(power - dead, degree) / pow(1 - dead, degree));
-			}
-			else {
-				return (max * pow(power + dead, degree) / pow(1 - dead, degree));
-			}
+			degree = 1;
+		}
+		if (degree % 2 == 0) {	// make sure degree is odd
+			degree++;
+		}
+		if (fabs(power) < dead) {	// if joystick input is in dead zone, return 0
+			return 0;
+		}
+		else if  (power > 0) {	// if it is outside of the dead zone, then the output is a function of specified degree centered at the end of the dead zone
+			return (max * pow(power - dead, degree) / pow(1 - dead, degree));
+		}
+		else {
+			return (max * pow(power + dead, degree) / pow(1 - dead, degree));
+		}
 	}
 
 	static float encoderToDistance (int value, float ticksPerRotation, float base, float radius) {

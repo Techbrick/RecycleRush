@@ -19,11 +19,11 @@ class Robot: public SampleRobot
 	Talon grabTalon;//motor controller for grabber
 	Switch grabInnerLimit;//controls at what point grabber should stop
 	Switch grabOuterLimit;//controls at what point grabber should stop
-	Talon liftTalon1;//motor controller for lift
-	Talon liftTalon2;//motor controller for lift
+	Talon liftTalon;//motor controller for lift
 	Encoder liftEncoder;//tells how high the lift is
 	Switch liftUpperLimit;//stops at top or bottom of the lift
 	Switch liftLowerLimit;//stops at top or bottom of the lift
+	Encoder grabEncoder;
 	PowerDistributionPanel pdp;
 	Gyro gyro;
 	Pickup pickup;
@@ -41,14 +41,14 @@ public:
 		grabTalon(Constants::grabTalonPin),
 		grabInnerLimit(Constants::grabInnerLimitPin),
 		grabOuterLimit(Constants::grabOuterLimitPin),
-		liftTalon1(Constants::liftTalonPin1),
-		liftTalon2(Constants::liftTalonPin2),
+		liftTalon(Constants::liftTalonPin),
 		liftEncoder(Constants::liftEncoderAPin, Constants::liftEncoderBPin),
 		liftUpperLimit(Constants::liftUpperLimitPin),
 		liftLowerLimit(Constants::liftLowerLimitPin),
+		grabEncoder(Constants::grabEncoderAPin, Constants::grabEncoderBPin),
 		pdp(),
 		gyro(Constants::driveGyroRate),
-		pickup(grabTalon, grabInnerLimit, grabOuterLimit, liftTalon1, liftTalon2, liftEncoder, liftUpperLimit, liftLowerLimit, pdp)
+		pickup(grabTalon, grabInnerLimit, grabOuterLimit, liftTalon, liftEncoder, liftUpperLimit, liftLowerLimit, pdp)
 {
 		robotDrive.SetExpiration(0.1);	// safety feature
 		robotDrive.SetInvertedMotor(RobotDrive::kFrontRightMotor, true); // make the motors go the right way
@@ -63,10 +63,13 @@ public:
 	{
 		robotDrive.SetSafetyEnabled(false);
 		gyro.Reset();
+		grabEncoder.Reset();
 		timer.Start();
 		timer.Reset();
 		double liftHeight = 0; //variable for lifting thread
 		int liftHeightBoxes = 0; //another variable for lifting thread
+		int liftStep = 0; //height of step in inches
+		int liftRamp = 0; //height of ramp in inches
 		uint8_t toSend[10];//array of bytes to send over I2C
 		uint8_t toReceive[10];//array of bytes to receive over I2C
 		uint8_t numToSend = 1;//number of bytes to send
@@ -75,12 +78,13 @@ public:
 		i2c.Transaction(toSend, 1, toReceive, 0);//send over I2C
 		bool isGrabbing = false;//whether or not grabbing thread is running
 		bool isLifting = false;//whether or not lifting thread is running
+		bool isBraking = false;//whether or not braking thread is running
 		float driveX = 0;
 		float driveY = 0;
 		float driveZ = 0;
 		float driveGyro = 0;
 		bool liftLastState = false;
-		bool liftState = false;
+		bool liftState = false; //button pressed
 		double liftLastTime = 0;
 		double liftTime = 0;
 		bool liftRan = false;
@@ -144,8 +148,20 @@ public:
 
 
 
-			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree));
-			pickup.setLifter(Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
+			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree)); //defines the grabber
+			pickup.setLifter(Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
+
+			SmartDashboard::PutNumber("Lift Power", Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
+			SmartDashboard::PutBoolean("Is Lifting", isLifting);
+
+			if (Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree) != 0 || isLifting) { //if the robot is lifting
+				isBraking = false; //stop braking thread
+				SmartDashboard::PutBoolean("Braking", false);
+			}
+			else if(!isBraking) {
+				isBraking = true; //run braking thread
+				pickup.lifterBrake(isBraking);//brake the pickup
+			}
 
 
 
@@ -153,25 +169,49 @@ public:
 			liftTime = timer.Get();
 			liftState = grabStick.GetRawButton(Constants::liftButton);
 
-			if (liftState) {
+			if (liftState) { //if button is pressed
 				if (!liftLastState) {
 					if (liftTime - liftLastTime < Constants::liftMaxTime) {
 						if (liftHeightBoxes < Constants::liftMaxHeightBoxes) {
-							liftHeightBoxes++;
+							liftHeightBoxes++; //adds 1 to liftHeightBoxes
 						}
 					}
 					else {
 						liftHeightBoxes = 1;
+						liftRamp = 0;
+						liftStep = 0;
 					}
 				}
 				liftLastTime = liftTime;
 				liftLastState = true;
 				liftRan = false;
 			}
+			else if (grabStick.GetRawButton(Constants::liftRampButton)) {
+				if (liftTime - liftLastTime > Constants::liftMaxTime) {
+					liftHeight = 0;
+					liftStep = 0;
+				}
+				liftRamp = 1; //prepares to go up ramp
+				liftLastTime = liftTime;
+				liftRan = false;
+			}
+			else if (grabStick.GetRawButton(Constants::liftStepButton)) {
+				if (liftTime - liftLastTime > Constants::liftMaxTime) {
+					liftHeight = 0;
+					liftRamp = 0;
+				}
+				liftStep = 1; //prepares robot for step
+				liftLastTime = liftTime;
+				liftRan = false;
+			}
 			else {
 				if (liftTime - liftLastTime > Constants::liftMaxTime && !liftRan) {
 					//TODO Change Box Height
-					liftHeight = liftHeightBoxes * Constants::liftBoxHeight;
+
+					liftHeight = liftHeightBoxes * Constants::liftBoxHeight + liftRamp * Constants::liftRampHeight + liftStep * Constants::liftStepHeight; //sets liftHeight
+					if (liftHeightBoxes > 0) {
+						liftHeight -= Constants::liftBoxLip;
+					}
 					pickup.lifterPosition(liftHeight, isLifting, grabStick);//start lifting thread
 					liftRan = true;
 				}
@@ -183,7 +223,7 @@ public:
 
 
 			if (grabStick.GetRawButton(Constants::grabButton)) {//if grab button is pressed
-				pickup.grabberPosition(isGrabbing, grabStick);//start grabber thread
+				pickup.grabberGrab(isGrabbing, grabStick);//start grabber thread
 			}
 			//TODO if (grabStick.GetRawButton(Constants::liftButton)) {//if lift button is pressed
 			//	pickup.lifterPosition(liftHeight, isLifting, grabStick);//start lifting thread
@@ -208,20 +248,42 @@ public:
 			SmartDashboard::PutNumber("Distance", distance);	// write stuff to smart dash
 			SmartDashboard::PutNumber("Current", pdp.GetCurrent(Constants::grabPdpChannel));
 			SmartDashboard::PutNumber("LED Current", pdp.GetCurrent(Constants::ledPdpChannel));
-			SmartDashboard::PutNumber("Encoder", rotations);
-			SmartDashboard::PutNumber("Boxes", liftHeightBoxes);
+			SmartDashboard::PutNumber("Lift Encoder", rotations);
+			SmartDashboard::PutNumber("Lift Height", liftHeight);
+			SmartDashboard::PutNumber("Grab Encoder", grabEncoder.Get());
 
 			i2c.Transaction(toSend, 1, toReceive, 0);//send and receive information from arduino over I2C
 			Wait(0.005); // wait 5ms to avoid hogging CPU cycles
 		}
 		toSend[0] = 0; //send 0 to arduino
 		numToSend = 1;
+		isBraking = false;
 		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
 	}
 
 	void Autonomous()
 	{
 		float power = 0;
+		gyro.Reset();
+		liftEncoder.Reset();
+		bool isLifting = false;
+		bool isGrabbing = false;
+		double liftHeight = Constants::liftBoxHeight-Constants::liftBoxLip;
+
+		pickup.lifterPosition(liftHeight, isLifting, grabStick);
+		while (isLifting) {
+			Wait(.005);
+		}
+		pickup.grabberGrab(isGrabbing, grabStick);
+		while (isGrabbing) {
+			Wait(.005);
+		}
+
+		liftHeight = 2*Constants::liftBoxHeight-Constants::liftBoxLip;
+		pickup.lifterPosition(liftHeight, isLifting, grabStick);
+		while (isLifting) {
+			Wait(.005);
+		}
 
 		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 2) {	// while the nearest object is closer than 3 feet
 		}
@@ -230,7 +292,7 @@ public:
 			if (power < .6) { //ramp up the power slowly
 				power += .005;
 			}
-			robotDrive.MecanumDrive_Cartesian(0, power, 0);	// drive back
+			robotDrive.MecanumDrive_Cartesian(0, power, 0, gyro.GetAngle());	// drive back
 			Wait(.005);
 		}
 
@@ -241,27 +303,6 @@ public:
 		}
 
 		power = 0;
-
-		/*while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 5) {	// while the nearest object is closer than 3 feet
-			if (power < .6) {
-				power += .005;
-			}
-			robotDrive.MecanumDrive_Cartesian(power, 0, 0);	// drive right
-			Wait(.005);
-		}
-
-		for (int i = 0; i < 5; i++)
-		{
-			Wait(.05);
-		}
-
-		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 > 5) {	// while the nearest object is closer than 3 feet
-			if (power < .6) {
-				power += .005;
-			}
-			robotDrive.MecanumDrive_Cartesian(power, 0, 0);	// drive right
-			Wait(.005);
-		} */
 		robotDrive.TankDrive(0.0, 0);	// STOP!!!
 	}
 

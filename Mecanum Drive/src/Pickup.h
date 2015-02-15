@@ -17,19 +17,20 @@ class Pickup {
 	Switch &grabInnerLimit;
 	Switch &grabOuterLimit;
 	Task grabberPositionTask;
-	Talon &liftTalon1;
-	Talon &liftTalon2;
+	Talon &liftTalon;
 	Encoder &liftEncoder;
 	Switch &liftUpperLimit;
 	Switch &liftLowerLimit;
 	Task lifterPositionTask;
+	Task lifterBrakeTask;
 	PowerDistributionPanel &pdp;
 public:
-	Pickup(Talon &grabTalonPtr, Switch &grabInnerLimit, Switch &grabOuterLimit, Talon &liftTalon1, Talon &liftTalon2, Encoder &liftEncoder, Switch &liftInnerLimit, Switch &liftOuterLimit, PowerDistributionPanel &pdpPtr);
+	Pickup(Talon &grabTalonPtr, Switch &grabInnerLimitPtr, Switch &grabOuterLimitPtr, Talon &liftTalonPtr, Encoder &liftEncoderPtr, Switch &liftInnerLimitPtr, Switch &liftOuterLimitPtr, PowerDistributionPanel &pdpPtr);
 	void setGrabber(float power);	// opens and closes grabber
-	void grabberPosition(bool &isGrabbing, Joystick &joystick);	// move grabber to set position (threaded)
+	void grabberGrab(bool &isGrabbing, Joystick &joystick);	// move grabber to set position (threaded)
 	void setLifter(float power);	// moves forklift up and down
 	void lifterPosition(double &height, bool &isGrabbing, Joystick &joystick);	// move forklift to set position (threaded)
+	void lifterBrake(bool &isBraking);	// hold forklift to set position (threaded)
 
 };
 
