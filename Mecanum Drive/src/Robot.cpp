@@ -87,7 +87,7 @@ public:
 		bool liftState = false; //button pressed
 		double liftLastTime = 0;
 		double liftTime = 0;
-		bool liftRan = false;
+		bool liftRan = true;
 
 
 
@@ -103,18 +103,11 @@ public:
 			driveX = driveStick.GetRawAxis(Constants::driveXAxis);//starts driving code
 			driveY = driveStick.GetRawAxis(Constants::driveYAxis);
 			driveZ = driveStick.GetRawAxis(Constants::driveZAxis);
-			driveGyro = gyro.GetAngle();
-
-
-			uint32_t stickPtr = (uint32_t) (&driveStick);
-			GenericHID *stick = (GenericHID *) stickPtr;
-			JoystickButton trigger(stick, 5);
-			SmartDashboard::PutNumber("Num Grab Buttons", grabStick.GetButtonCount());
-			SmartDashboard::PutNumber("Num Drive Buttons", driveStick.GetButtonCount());
+			driveGyro = gyro.GetAngle() + Constants::driveGyroTeleopOffset;
 
 
 			if (driveStick.GetRawButton(Constants::driveOneAxisButton)) {//if X is greater than Y and Z, then it will only go in the direction of X
-				toSend[0] = 3;
+				toSend[0] = 6;
 				numToSend = 1;
 
 				if (fabs(driveX) > fabs(driveY) && fabs(driveX) > fabs(driveZ)) {
@@ -132,6 +125,7 @@ public:
 			}
 
 			if (driveStick.GetRawButton(Constants::driveXYButton)) {//Z lock; only lets X an Y function
+				toSend[0] = 7;
 				driveZ = 0;//Stops Z while Z lock is pressed
 			}
 
@@ -149,7 +143,7 @@ public:
 
 
 			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree)); //defines the grabber
-			pickup.setLifter(Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
+			pickup.setLifter(-Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
 
 			SmartDashboard::PutNumber("Lift Power", Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
 			SmartDashboard::PutBoolean("Is Lifting", isLifting);
@@ -206,7 +200,6 @@ public:
 			}
 			else {
 				if (liftTime - liftLastTime > Constants::liftMaxTime && !liftRan) {
-					//TODO Change Box Height
 
 					liftHeight = liftHeightBoxes * Constants::liftBoxHeight + liftRamp * Constants::liftRampHeight + liftStep * Constants::liftStepHeight; //sets liftHeight
 					if (liftHeightBoxes > 0) {
@@ -222,12 +215,10 @@ public:
 
 
 
-			if (grabStick.GetRawButton(Constants::grabButton)) {//if grab button is pressed
+			if (grabStick.GetRawButton(Constants::grabButton) && !isGrabbing) {//if grab button is pressed
 				pickup.grabberGrab(isGrabbing, grabStick);//start grabber thread
 			}
-			//TODO if (grabStick.GetRawButton(Constants::liftButton)) {//if lift button is pressed
-			//	pickup.lifterPosition(liftHeight, isLifting, grabStick);//start lifting thread
-			//}
+
 			if (isGrabbing) {
 				toSend[0] = 5;
 				numToSend = 1;
@@ -244,13 +235,21 @@ public:
 
 
 			float distance = prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12;	// distance from ultrasonic sensor
-			float rotations = (float) liftEncoder.Get() / Constants::liftEncoderTicks;	// rotations on encoder
+			float rotations = (float) liftEncoder.Get();	// rotations on encoder
 			SmartDashboard::PutNumber("Distance", distance);	// write stuff to smart dash
 			SmartDashboard::PutNumber("Current", pdp.GetCurrent(Constants::grabPdpChannel));
 			SmartDashboard::PutNumber("LED Current", pdp.GetCurrent(Constants::ledPdpChannel));
 			SmartDashboard::PutNumber("Lift Encoder", rotations);
 			SmartDashboard::PutNumber("Lift Height", liftHeight);
 			SmartDashboard::PutNumber("Grab Encoder", grabEncoder.Get());
+			SmartDashboard::PutBoolean("Grab Inner", grabInnerLimit.Get());
+			SmartDashboard::PutBoolean("Grab Outer", grabOuterLimit.Get());
+			SmartDashboard::PutNumber("Drive Front Left Current", pdp.GetCurrent(Constants::driveFrontLeftPin));
+			SmartDashboard::PutNumber("Drive Front Right Current", pdp.GetCurrent(Constants::driveFrontRightPin));
+			SmartDashboard::PutNumber("Drive Rear Left Current", pdp.GetCurrent(Constants::driveRearLeftPin));
+			SmartDashboard::PutNumber("Drive Rear Right Current", pdp.GetCurrent(Constants::driveRearRightPin));
+
+
 
 			i2c.Transaction(toSend, 1, toReceive, 0);//send and receive information from arduino over I2C
 			Wait(0.005); // wait 5ms to avoid hogging CPU cycles
@@ -263,47 +262,116 @@ public:
 
 	void Autonomous()
 	{
+		Timer timer;
 		float power = 0;
-		gyro.Reset();
-		liftEncoder.Reset();
 		bool isLifting = false;
 		bool isGrabbing = false;
 		double liftHeight = Constants::liftBoxHeight-Constants::liftBoxLip;
 
-		pickup.lifterPosition(liftHeight, isLifting, grabStick);
-		while (isLifting) {
+		uint8_t toSend[1];//array of bytes to send over I2C
+		uint8_t toReceive[0];//array of bytes to receive over I2C
+		uint8_t numToSend = 1;//number of bytes to send
+		uint8_t numToReceive = 0;//number of bytes to receive
+		toSend[0] = 2;//set the byte to send to 1
+		i2c.Transaction(toSend, 1, toReceive, 0);//send over I2C
+
+		bool isSettingUp = true;
+
+		pickup.setGrabber(-1);
+		pickup.setLifter(1);
+		while (isSettingUp && IsEnabled() && IsAutonomous()) {
+			isSettingUp = false;
+			if (grabOuterLimit.Get() == false) {
+				pickup.setGrabber(0);
+			}
+			else {
+				isSettingUp = true;
+			}
+
+			if (liftLowerLimit.Get()) {
+				pickup.setLifter(0);
+			}
+			else {
+				isSettingUp = true;
+			}
+		}
+		gyro.Reset();
+		liftEncoder.Reset();
+		grabEncoder.Reset();
+
+
+		while (isLifting && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
 		pickup.grabberGrab(isGrabbing, grabStick);
-		while (isGrabbing) {
+		while (isGrabbing && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
 
-		liftHeight = 2*Constants::liftBoxHeight-Constants::liftBoxLip;
+		liftHeight = 2*Constants::liftBoxHeight;
 		pickup.lifterPosition(liftHeight, isLifting, grabStick);
-		while (isLifting) {
+		while (isLifting && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
 
-		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 2) {	// while the nearest object is closer than 3 feet
-		}
+		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 2 && IsEnabled() && IsAutonomous());	// while the nearest object is closer than 2 feet
 
-		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12 < 12) {	// while the nearest object is closer than 3 feet
+		timer.Start();
+
+		while(prox.GetVoltage() * Constants::ultrasonicVoltageToInches  < Constants::autoBackupDistance && timer.Get() < Constants::autoMaxDriveTime && IsEnabled() && IsAutonomous()) {	// while the nearest object is further than 12 feet
 			if (power < .6) { //ramp up the power slowly
 				power += .005;
 			}
 			robotDrive.MecanumDrive_Cartesian(0, power, 0, gyro.GetAngle());	// drive back
+			float distance = prox.GetVoltage() * Constants::ultrasonicVoltageToInches / 12;	// distance from ultrasonic sensor
+			SmartDashboard::PutNumber("Distance", distance);	// write stuff to smart dash
+			SmartDashboard::PutNumber("Drive Front Left Current", pdp.GetCurrent(Constants::driveFrontLeftPin));
+			SmartDashboard::PutNumber("Drive Front Right Current", pdp.GetCurrent(Constants::driveFrontRightPin));
+			SmartDashboard::PutNumber("Drive Rear Left Current", pdp.GetCurrent(Constants::driveRearLeftPin));
+			SmartDashboard::PutNumber("Drive Rear Right Current", pdp.GetCurrent(Constants::driveRearRightPin));
+
 			Wait(.005);
 		}
 
-		for (int i = 0; i < 10; i++) //pause to make motors stop
-		{
-			robotDrive.MecanumDrive_Cartesian(0,0,0); ///STOP!!!
-			Wait(.05);
+		timer.Reset();
+
+		while(timer.Get() < Constants::autoBrakeTime && IsEnabled() && IsAutonomous()) {	// while the nearest object is further than 12 feet
+			robotDrive.MecanumDrive_Cartesian(0,-.05,0); ///Brake
 		}
 
-		power = 0;
-		robotDrive.TankDrive(0.0, 0);	// STOP!!!
+		robotDrive.MecanumDrive_Cartesian(0,0,0); ///STOP!!!
+
+		timer.Stop();
+
+		toSend[0] = 0;//set the byte to send to 1
+		i2c.Transaction(toSend, 1, toReceive, 0);//send over I2C
+	}
+
+	void Test() {
+		bool isSettingUp = true;
+
+		pickup.setGrabber(-1);
+		pickup.setLifter(1);
+		while (isSettingUp) {
+			isSettingUp = false;
+			if (grabOuterLimit.Get() == false) {
+				pickup.setGrabber(0);
+			}
+			else {
+				isSettingUp = true;
+			}
+
+			if (liftLowerLimit.Get()) {
+				pickup.setLifter(0);
+			}
+			else {
+				isSettingUp = true;
+			}
+		}
+		gyro.Reset();
+		liftEncoder.Reset();
+		grabEncoder.Reset();
+
 	}
 
 };

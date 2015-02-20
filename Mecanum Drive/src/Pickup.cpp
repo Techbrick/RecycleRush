@@ -17,16 +17,18 @@ inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr,
 	Switch *grabInnerLimit = (Switch *) grabInnerLimitPtr;
 	PowerDistributionPanel *pdp = (PowerDistributionPanel *) pdpPtr;
 	bool *isGrabbing = (bool *) isGrabbingPtr;
+	Timer timer;
+	timer.Start();
 
 	*isGrabbing = true;//tells robot.cpp that thread is running
 
-	if (grabInnerLimit->Get() == false) {//starts to spin motor to pass startup current
+	while (grabInnerLimit->Get() && timer.Get() < Constants::grabDelay) {//starts to spin motor to pass startup current
 		grabTalon->Set(1);//move in
-		Wait(Constants::grabDelay);
 	}
 
+	timer.Stop();
 
-	while (pdp->GetCurrent(Constants::grabPdpChannel) < Constants::grabCurrent && grabInnerLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
+	while (pdp->GetCurrent(Constants::grabPdpChannel) < Constants::grabCurrent && grabInnerLimit->Get() && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
 		grabTalon->Set(1);
 		SmartDashboard::PutNumber("Current",pdp->GetCurrent(Constants::grabPdpChannel));//displays current on SmartDashboard
 	}
@@ -47,14 +49,14 @@ inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, 
 
 	*isLifting = true;//tells robot.cpp that thread is running
 
-	if (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) > *height) {//checks to see if encoder is higher or lower than it's supposed to be
+	if (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) > *height) {//checks to see if encoder is higher than it's supposed to be
 		if (liftLowerLimit->Get() == false) {//starts to spin motor to pass startup current
 				liftTalon->Set(1);//move down
 				Wait(Constants::liftDelay);
 		}
-		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) < *height && pdp->GetCurrent(Constants::lift1PdpChannel) < Constants::liftCurrent && pdp->GetCurrent(Constants::lift2PdpChannel) < Constants::liftCurrent && liftLowerLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too high and hasn't hit a limit switch or been cancelled
-			SmartDashboard::PutNumber("Encoder",liftEncoder->Get()/Constants::liftEncoderTicks);//displays number of ticks of encoder in SmartDashboard
-			liftTalon->Set(1);//move down
+		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) > *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftLowerLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too high and hasn't hit a limit switch or been cancelled
+			SmartDashboard::PutNumber("Pretend Encoder",liftEncoder->Get());//displays number of ticks of encoder in SmartDashboard
+			liftTalon->Set(.7);//move down
 		}
 	}
 	else {
@@ -62,8 +64,8 @@ inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, 
 				liftTalon->Set(-1);//move up
 				Wait(Constants::liftDelay);
 		}
-		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) < *height && pdp->GetCurrent(Constants::lift1PdpChannel) < Constants::liftCurrent && pdp->GetCurrent(Constants::lift2PdpChannel) < Constants::liftCurrent && liftUpperLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too low and hasn't hit a limit switch or been cancelled
-			SmartDashboard::PutNumber("Encoder",liftEncoder->Get()/Constants::liftEncoderTicks);//displays number of ticks of encoder on SmartDashboard
+		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) < *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftUpperLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too low and hasn't hit a limit switch or been cancelled
+			SmartDashboard::PutNumber("Pretend Encoder",liftEncoder->Get());//displays number of ticks of encoder on SmartDashboard
 			liftTalon->Set(-1);//move up
 		}
 	}
@@ -80,6 +82,12 @@ inline void lifterBrakeTaskFunc(uint32_t liftTalonPtr, uint32_t liftEncoderPtr, 
 	bool *isBraking = (bool *) isBrakingPtr;
 	PIDController pid(0.1, 0.00, 0.0, liftEncoder, liftTalon);
 
+	//TODO Get rid of return and test out brake
+	return;
+
+	liftTalon->Set(-.05);
+	Wait(.25);
+	liftTalon->Set(0);
 
 	pid.Enable();
 	pid.SetSetpoint(liftEncoder->Get());
@@ -91,9 +99,6 @@ inline void lifterBrakeTaskFunc(uint32_t liftTalonPtr, uint32_t liftEncoderPtr, 
 		else {
 			liftTalon->Set(-pid.Get());
 		}
-		SmartDashboard::PutNumber("PID Setpoint", pid.GetSetpoint());
-		SmartDashboard::PutNumber("PID Power", pid.Get());
-		SmartDashboard::PutNumber("PID Position", liftEncoder->Get());
 		SmartDashboard::PutBoolean("Braking", true);
 
 
@@ -121,8 +126,8 @@ Pickup::Pickup(Talon &grabTalonPtr, Switch &grabInnerLimitPtr, Switch &grabOuter
 }
 void Pickup::setGrabber(float power)//moves Grabber and checks limit switches
 {
-	if (power > 0) {	// if it wants to move out
-		if (grabOuterLimit.Get() == false) {	// if it is not already all the way out
+	if (power < 0) {	// if it wants to move out
+		if (grabOuterLimit.Get()) {	// if it is not already all the way out
 			grabTalon.Set(power);	// move out
 		}
 		else {
@@ -130,7 +135,7 @@ void Pickup::setGrabber(float power)//moves Grabber and checks limit switches
 		}
 	}
 	else {	// if it wants to move in
-		if (grabInnerLimit.Get() == false) {	//if it is not already all the way in
+		if (grabInnerLimit.Get()) {	//if it is not already all the way in
 			grabTalon.Set(power);	// move in
 		}
 		else {

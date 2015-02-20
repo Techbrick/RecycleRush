@@ -39,8 +39,7 @@ public:
 	//PDP Ports
 	const static constexpr int grabPdpChannel = 15;
 	const static constexpr int ledPdpChannel = 13;
-	const static constexpr int lift1PdpChannel = 14;
-	const static constexpr int lift2PdpChannel = 1;
+	const static constexpr int liftPdpChannel = 14;
 
 
 	//Drive Stick
@@ -91,10 +90,10 @@ public:
 	const static constexpr int liftEncoderTicks = 360;
 	const static constexpr int grabEncoderTicks = 2048;
 	const static constexpr bool liftEncoderReverse = true;
-	const static constexpr float liftEncoderRadius = 1;
-	const static constexpr float liftEncoderBase = 8;
-	const static constexpr float grabDelay = .07;
-	const static constexpr int grabCurrent = 10;
+	const static constexpr float liftEncoderRadius = 1.4722936;
+	const static constexpr float liftEncoderBase = 8.875;
+	const static constexpr float grabDelay = .25;
+	const static constexpr int grabCurrent = 15;
 	const static constexpr float liftDelay = .2;
 	const static constexpr int liftCurrent = 100;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
@@ -104,8 +103,11 @@ public:
 	const static constexpr int liftRampHeight = 3;
 	const static constexpr int liftStepHeight = 8.5;
 	const static constexpr float liftBoxHeight = 12;
-	const static constexpr float liftBoxLip = 3;
-
+	const static constexpr float liftBoxLip = 3.5;
+	const static constexpr float driveGyroTeleopOffset = 180;
+	const static constexpr float autoBackupDistance = 144;
+	const static constexpr float autoMaxDriveTime = 4;
+	const static constexpr float autoBrakeTime = .25;
 
 	Constants() {}
 
