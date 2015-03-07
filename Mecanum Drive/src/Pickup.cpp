@@ -80,13 +80,20 @@ inline void lifterBrakeTaskFunc(uint32_t liftTalonPtr, uint32_t liftEncoderPtr, 
 	Switch *liftLowerLimit = (Switch *) liftLowerLimitPtr;
 	Switch *liftUpperLimit = (Switch *) liftUpperLimitPtr;
 	bool *isBraking = (bool *) isBrakingPtr;
-	PIDController pid(0.1, 0.00, 0.0, liftEncoder, liftTalon);
+	PIDController pid(Constants::liftBrakeP, Constants::liftBrakeI, Constants::liftBrakeD, liftEncoder, liftTalon);
+	Timer timer;
 
-	//TODO Get rid of return and test out brake
-	return;
+	//TODO enable and test out brake
+	if (!Constants::liftBrakeIsEnabled) {
+		return;
+	}
 
-	liftTalon->Set(-.05);
-	Wait(.25);
+	timer.Start();
+
+	while (timer.Get() < Constants::liftBrakeUpTime) {
+		liftTalon->Set(Constants::liftBrakeUpPower);
+	}
+
 	liftTalon->Set(0);
 
 	pid.Enable();

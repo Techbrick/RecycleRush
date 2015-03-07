@@ -336,7 +336,7 @@ public:
 		timer.Reset();
 
 		while(timer.Get() < Constants::autoBrakeTime && IsEnabled() && IsAutonomous()) {	// while the nearest object is further than 12 feet
-			robotDrive.MecanumDrive_Cartesian(0,-.05,0); ///Brake
+			robotDrive.MecanumDrive_Cartesian(0,Constants::autoBrakePower,0); ///Brake
 		}
 
 		robotDrive.MecanumDrive_Cartesian(0,0,0); ///STOP!!!

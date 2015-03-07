@@ -104,10 +104,17 @@ public:
 	const static constexpr int liftStepHeight = 8.5;
 	const static constexpr float liftBoxHeight = 12;
 	const static constexpr float liftBoxLip = 3.5;
+	const static constexpr bool liftBrakeIsEnabled = false;
+	const static constexpr float liftBrakeP = -0.06;
+	const static constexpr float liftBrakeI = -0.0;
+	const static constexpr float liftBrakeD = -0.0;
+	const static constexpr float liftBrakeUpPower = -0.1;
+	const static constexpr float liftBrakeUpTime = 0.25;
 	const static constexpr float driveGyroTeleopOffset = 180;
 	const static constexpr float autoBackupDistance = 144;
 	const static constexpr float autoMaxDriveTime = 4;
 	const static constexpr float autoBrakeTime = .25;
+	const static constexpr float autoBrakePower = -.05;
 
 	Constants() {}
 
