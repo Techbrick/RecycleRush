@@ -141,9 +141,14 @@ public:
 
 
 
-
 			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree)); //defines the grabber
-			pickup.setLifter(-Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
+			if (Constants::grabLiftInverted) {
+				pickup.setLifter(-Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
+			}
+			else {
+				pickup.setLifter(Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
+			}
+
 
 			SmartDashboard::PutNumber("Lift Power", Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree));
 			SmartDashboard::PutBoolean("Is Lifting", isLifting);

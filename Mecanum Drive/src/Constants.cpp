@@ -61,6 +61,7 @@ public:
 
 
 	//Grab Stick
+	const static constexpr bool grabLiftInverted = false;
 	const static constexpr int grabStickChannel	= 1;
 	const static constexpr int pickupCancelButton = 2;
 	const static constexpr int grabButton = 1;
