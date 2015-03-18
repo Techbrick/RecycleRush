@@ -70,6 +70,7 @@ public:
 		int liftHeightBoxes = 0; //another variable for lifting thread
 		int liftStep = 0; //height of step in inches
 		int liftRamp = 0; //height of ramp in inches
+		double grabPower;
 		uint8_t toSend[10];//array of bytes to send over I2C
 		uint8_t toReceive[10];//array of bytes to receive over I2C
 		uint8_t numToSend = 1;//number of bytes to send
@@ -220,8 +221,17 @@ public:
 
 
 
-			if (grabStick.GetRawButton(Constants::grabButton) && !isGrabbing) {//if grab button is pressed
-				pickup.grabberGrab(isGrabbing, grabStick);//start grabber thread
+			if (grabStick.GetRawButton(Constants::grabToteButton)) {//if grab button is pressed
+				grabPower = Constants::grabToteCurrent;
+				if (!isGrabbing) {
+					pickup.grabberGrab(isGrabbing, grabPower, grabStick);//start grabber thread
+				}
+			}
+			else if (grabStick.GetRawButton(Constants::grabBinButton)) {//if grab button is pressed
+				grabPower = Constants::grabBinCurrent;
+				if (!isGrabbing) {
+					pickup.grabberGrab(isGrabbing, grabPower, grabStick);//start grabber thread
+				}
 			}
 
 			if (isGrabbing) {
@@ -272,6 +282,7 @@ public:
 		bool isLifting = false;
 		bool isGrabbing = false;
 		double liftHeight = Constants::liftBoxHeight-Constants::liftBoxLip;
+		double grabPower = Constants::grabAutoCurrent;
 
 		uint8_t toSend[1];//array of bytes to send over I2C
 		uint8_t toReceive[0];//array of bytes to receive over I2C
@@ -308,7 +319,7 @@ public:
 		while (isLifting && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
-		pickup.grabberGrab(isGrabbing, grabStick);
+		pickup.grabberGrab(isGrabbing, grabPower, grabStick);
 		while (isGrabbing && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}

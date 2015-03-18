@@ -11,12 +11,13 @@
 #include "Constants.cpp"
 #include "Switch.h"
 
-inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, uint32_t isGrabbingPtr ...) {//uint is a pointer and not an integer
+inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, uint32_t isGrabbingPtr, uint32_t grabPowerPtr ...) {//uint is a pointer and not an integer
 	Joystick *joystick = (Joystick *) joystickPtr;//initializes objects from pointers
 	Talon *grabTalon = (Talon *) grabTalonPtr;
 	Switch *grabInnerLimit = (Switch *) grabInnerLimitPtr;
 	PowerDistributionPanel *pdp = (PowerDistributionPanel *) pdpPtr;
 	bool *isGrabbing = (bool *) isGrabbingPtr;
+	double *grabPower = (double *) grabPowerPtr;
 	Timer timer;
 	timer.Start();
 
@@ -28,7 +29,7 @@ inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr,
 
 	timer.Stop();
 
-	while (pdp->GetCurrent(Constants::grabPdpChannel) < Constants::grabCurrent && grabInnerLimit->Get() && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
+	while (pdp->GetCurrent(Constants::grabPdpChannel) < *grabPower && grabInnerLimit->Get() && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
 		grabTalon->Set(1);
 		SmartDashboard::PutNumber("Current",pdp->GetCurrent(Constants::grabPdpChannel));//displays current on SmartDashboard
 	}
@@ -151,8 +152,8 @@ void Pickup::setGrabber(float power)//moves Grabber and checks limit switches
 	}
 }
 
-void Pickup::grabberGrab(bool &isGrabbing, Joystick &joystick) {//start grabber thread
-	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp, (uint32_t) &isGrabbing);//casts all pointers to uint 32 so they can run as a thread
+void Pickup::grabberGrab(bool &isGrabbing, double &grabPower, Joystick &joystick) {//start grabber thread
+	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp, (uint32_t) &isGrabbing, (uint32_t) &grabPower);//casts all pointers to uint 32 so they can run as a thread
 }
 
 void Pickup::setLifter(float power)//moves lifter and checks limit switches

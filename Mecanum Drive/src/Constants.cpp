@@ -64,7 +64,8 @@ public:
 	const static constexpr bool grabLiftInverted = false;
 	const static constexpr int grabStickChannel	= 1;
 	const static constexpr int pickupCancelButton = 2;
-	const static constexpr int grabButton = 1;
+	const static constexpr int grabToteButton = 5;
+	const static constexpr int grabBinButton = 4;
 	const static constexpr int liftButton = 3;
 	const static constexpr int liftRampButton = 6;
 	const static constexpr int liftStepButton = 7;
@@ -94,7 +95,9 @@ public:
 	const static constexpr float liftEncoderRadius = 1.4722936;
 	const static constexpr float liftEncoderBase = 8.875;
 	const static constexpr float grabDelay = .25;
-	const static constexpr int grabCurrent = 15;
+	const static constexpr int grabToteCurrent = 10;
+	const static constexpr int grabBinCurrent = 15;
+	const static constexpr int grabAutoCurrent = 10;
 	const static constexpr float liftDelay = .2;
 	const static constexpr int liftCurrent = 100;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
