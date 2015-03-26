@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <FastLED.h>
-#define NUM_LEDS 80 
+#define NUM_LEDS 78 
 #define NUM_CHASE 10
 #define NUM_DANCES 8
 int green[NUM_CHASE];
@@ -17,6 +17,9 @@ void setup()
   
   Wire.begin(5);
   Wire.onReceive(receiveEvent);
+  
+  //randomSeed(analogRead(A0));
+  //dance = random(NUM_DANCES);
   
   //This is the chipset in the AM-2640 LED strip using the default Data/CLK pins
    FastLED.addLeds<WS2801, RGB>(leds, NUM_LEDS);
@@ -47,7 +50,7 @@ void loop()
        scrollOut();
       break;
     case 5:
-      dillon();
+      halfScrollIn();
       break;
     case 6:
       alexis();
@@ -239,3 +242,25 @@ void scrollOut() {
   count = (count - 1 + space) % space;
   delay(80);
 }
+void halfScrollIn() {
+  int space = 4;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i].setRGB(0,0,0);
+  }
+  for (int i = count; i < NUM_LEDS/4; i += space) {
+    leds[i].setRGB(55,55,0);
+  }
+  for (int i = NUM_LEDS/2-count; i > NUM_LEDS/4; i -= space) {
+    leds[i].setRGB(55,55,0);
+  }
+  for (int i = NUM_LEDS/2 + count; i < 3*NUM_LEDS/4; i += space) {
+    leds[i].setRGB(55,55,0);
+  }
+  for (int i = NUM_LEDS - count; i > 3*NUM_LEDS/4; i -= space) {
+    leds[i].setRGB(55,55,0);
+  }
+  count = (count + 1) % space;
+  delay(80);
+}
+
+
