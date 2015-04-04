@@ -58,7 +58,7 @@ public:
 	const static constexpr int driveOneAxisButton = 11;
 	const static constexpr int driveXYButton = 1;
 	const static constexpr int driveFieldLockButton = 2;
-	const static constexpr int sneakyMoveButton = 4;
+  const static constexpr int sneakyMoveButton = 4;
 
 
 	//Grab Stick
@@ -71,7 +71,6 @@ public:
 	const static constexpr int liftRampButton = 6;
 	const static constexpr int liftStepButton = 7;
 	const static constexpr int liftFloorButton = 8;
-	const static constexpr int liftCycleButton = 9;
 
 
 	//Joystick Scaling Constants
@@ -117,7 +116,6 @@ public:
 	const static constexpr float liftBrakeD = -0.0;
 	const static constexpr float liftBrakeUpPower = -0.1;
 	const static constexpr float liftBrakeUpTime = 0.25;
-	const static constexpr float liftBackoutTime = .5;
 	const static constexpr float driveGyroTeleopOffset = 180;
 	const static constexpr float autoBackupDistance = 130;
 	const static constexpr float autoMaxDriveTime = 4;
