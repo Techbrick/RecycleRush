@@ -11,13 +11,12 @@
 #include "Constants.cpp"
 #include "Switch.h"
 
-inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, uint32_t isGrabbingPtr, uint32_t grabPowerPtr ...) {//uint is a pointer and not an integer
+inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr, uint32_t grabInnerLimitPtr, uint32_t pdpPtr, uint32_t isGrabbingPtr ...) {//uint is a pointer and not an integer
 	Joystick *joystick = (Joystick *) joystickPtr;//initializes objects from pointers
 	Talon *grabTalon = (Talon *) grabTalonPtr;
 	Switch *grabInnerLimit = (Switch *) grabInnerLimitPtr;
 	PowerDistributionPanel *pdp = (PowerDistributionPanel *) pdpPtr;
 	bool *isGrabbing = (bool *) isGrabbingPtr;
-	double *grabPower = (double *) grabPowerPtr;
 	Timer timer;
 	timer.Start();
 
@@ -29,7 +28,7 @@ inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr,
 
 	timer.Stop();
 
-	while (pdp->GetCurrent(Constants::grabPdpChannel) < *grabPower && grabInnerLimit->Get() && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
+	while (pdp->GetCurrent(Constants::grabPdpChannel) < Constants::grabCurrent && grabInnerLimit->Get() && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it hasn't reached the current cutoff, hit a limit switch, or been cancelled
 		grabTalon->Set(1);
 		SmartDashboard::PutNumber("Current",pdp->GetCurrent(Constants::grabPdpChannel));//displays current on SmartDashboard
 	}
@@ -38,7 +37,7 @@ inline void grabberPositionTaskFunc(uint32_t joystickPtr, uint32_t grabTalonPtr,
 	*isGrabbing = false;//tells that thread is over
 }
 
-inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, uint32_t liftEncoderPtr, uint32_t liftUpperLimitPtr, uint32_t liftLowerLimitPtr, uint32_t pdpPtr, uint32_t heightPtr, uint32_t isLiftingPtr ...) {//uint is a pointer and not an integer
+inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, uint32_t liftEncoderPtr, uint32_t liftUpperLimitPtr, uint32_t liftLowerLimitPtr, uint32_t pdpPtr, uint32_t heightPtr, uint32_t isLiftingPtr, uint32_t changebasePtr ...) {//uint is a pointer and not an integer
 	double *height = (double *) heightPtr;//initializes double
 	Joystick *joystick = (Joystick *) joystickPtr;
 	Talon *liftTalon = (Talon *) liftTalonPtr;
@@ -47,15 +46,21 @@ inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, 
 	Switch *liftUpperLimit = (Switch *) liftUpperLimitPtr;
 	PowerDistributionPanel *pdp = (PowerDistributionPanel *) pdpPtr;
 	bool *isLifting = (bool *) isLiftingPtr;
-
+	bool *changebase= (bool *) changebasePtr;
+	float base;
 	*isLifting = true;//tells robot.cpp that thread is running
-
-	if (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) > *height) {//checks to see if encoder is higher than it's supposed to be
+	if(changebase){
+		base=Constants::updatedLiftEncoderBase;
+	}
+	else{
+		base=Constants::liftEncoderBase;
+	}
+	if (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, base, Constants::liftEncoderRadius) > *height) {//checks to see if encoder is higher than it's supposed to be
 		if (liftLowerLimit->Get() == false) {//starts to spin motor to pass startup current
 				liftTalon->Set(1);//move down
 				Wait(Constants::liftDelay);
 		}
-		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) > *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftLowerLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too high and hasn't hit a limit switch or been cancelled
+		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, base, Constants::liftEncoderRadius) > *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftLowerLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too high and hasn't hit a limit switch or been cancelled
 			SmartDashboard::PutNumber("Pretend Encoder",liftEncoder->Get());//displays number of ticks of encoder in SmartDashboard
 			liftTalon->Set(.7);//move down
 		}
@@ -65,7 +70,7 @@ inline void lifterPositionTaskFunc(uint32_t joystickPtr, uint32_t liftTalonPtr, 
 				liftTalon->Set(-1);//move up
 				Wait(Constants::liftDelay);
 		}
-		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, Constants::liftEncoderBase, Constants::liftEncoderRadius) < *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftUpperLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too low and hasn't hit a limit switch or been cancelled
+		while (Constants::encoderToDistance(liftEncoder->Get(),Constants::liftEncoderTicks, base, Constants::liftEncoderRadius) < *height && pdp->GetCurrent(Constants::liftPdpChannel) < Constants::liftCurrent && liftUpperLimit->Get() == false && joystick->GetRawButton(Constants::pickupCancelButton) == false) {//while it is too low and hasn't hit a limit switch or been cancelled
 			SmartDashboard::PutNumber("Pretend Encoder",liftEncoder->Get());//displays number of ticks of encoder on SmartDashboard
 			liftTalon->Set(-1);//move up
 		}
@@ -152,8 +157,8 @@ void Pickup::setGrabber(float power)//moves Grabber and checks limit switches
 	}
 }
 
-void Pickup::grabberGrab(bool &isGrabbing, double &grabPower, Joystick &joystick) {//start grabber thread
-	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp, (uint32_t) &isGrabbing, (uint32_t) &grabPower);//casts all pointers to uint 32 so they can run as a thread
+void Pickup::grabberGrab(bool &isGrabbing, Joystick &joystick) {//start grabber thread
+	grabberPositionTask.Start((uint32_t) &joystick, (uint32_t) &grabTalon, (uint32_t) &grabInnerLimit, (uint32_t) &pdp, (uint32_t) &isGrabbing);//casts all pointers to uint 32 so they can run as a thread
 }
 
 void Pickup::setLifter(float power)//moves lifter and checks limit switches
@@ -176,8 +181,8 @@ void Pickup::setLifter(float power)//moves lifter and checks limit switches
 	}
 }
 
-void Pickup::lifterPosition(double &height, bool &isLifting, Joystick &joystick) {//starts lifting thread
-	lifterPositionTask.Start((uint32_t) &joystick, (uint32_t) &liftTalon, (uint32_t) &liftEncoder, (uint32_t) &liftUpperLimit, (uint32_t) &liftLowerLimit, (uint32_t) &pdp, (uint32_t) &height, (uint32_t) &isLifting);//casts all pointers to uint 32 so they can run as a thread
+void Pickup::lifterPosition(double &height, bool &isLifting, Joystick &joystick, bool &changebase) {//starts lifting thread
+	lifterPositionTask.Start((uint32_t) &joystick, (uint32_t) &liftTalon, (uint32_t) &liftEncoder, (uint32_t) &liftUpperLimit, (uint32_t) &liftLowerLimit, (uint32_t) &pdp, (uint32_t) &height, (uint32_t) &isLifting, (uint32_t) &changebase);//casts all pointers to uint 32 so they can run as a thread
 }
 
 void Pickup::lifterBrake(bool &isBraking) {//starts lifting thread
