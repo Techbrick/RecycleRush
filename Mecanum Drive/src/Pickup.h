@@ -27,9 +27,9 @@ class Pickup {
 public:
 	Pickup(Talon &grabTalonPtr, Switch &grabInnerLimitPtr, Switch &grabOuterLimitPtr, Talon &liftTalonPtr, Encoder &liftEncoderPtr, Switch &liftInnerLimitPtr, Switch &liftOuterLimitPtr, PowerDistributionPanel &pdpPtr);
 	void setGrabber(float power);	// opens and closes grabber
-	void grabberGrab(bool &isGrabbing, Joystick &joystick);	// move grabber to set position (threaded)
+	void grabberGrab(bool &isGrabbing, double &grabPower, bool &backOut, Joystick &joystick);	// move grabber to set position (threaded)
 	void setLifter(float power);	// moves forklift up and down
-	void lifterPosition(double &height, bool &isGrabbing, Joystick &joystick, bool &changebase);	// move forklift to set position (threaded)
+	void lifterPosition(double &height, bool &isGrabbing, Joystick &joystick);	// move forklift to set position (threaded)
 	void lifterBrake(bool &isBraking);	// hold forklift to set position (threaded)
 
 };
