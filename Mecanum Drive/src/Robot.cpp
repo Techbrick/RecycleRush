@@ -71,6 +71,7 @@ public:
 		int liftStep = 0; //height of step in inches
 		int liftRamp = 0; //height of ramp in inches
 		double grabPower;
+		bool backOut;
 		uint8_t toSend[10];//array of bytes to send over I2C
 		uint8_t toReceive[10];//array of bytes to receive over I2C
 		uint8_t numToSend = 1;//number of bytes to send
@@ -89,7 +90,10 @@ public:
 		double liftLastTime = 0;
 		double liftTime = 0;
 		bool liftRan = true;
-
+		Timer switchTimer;
+		Timer grabTimer;
+		switchTimer.Start();
+		grabTimer.Start();
 
 
 		while (IsOperatorControl() && IsEnabled())
@@ -142,7 +146,18 @@ public:
 
 
 
-			pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree)); //defines the grabber
+			if (pdp.GetCurrent(Constants::grabPdpChannel) < Constants::grabManualCurrent) {
+				pickup.setGrabber(Constants::scaleJoysticks(grabStick.GetX(), Constants::grabDeadZone, Constants::grabMax, Constants::grabDegree)); //defines the grabber
+				if(grabTimer.Get() < 1) {
+					toSend[0] = 6;
+				}
+			}
+			else {
+				pickup.setGrabber(0);
+				grabTimer.Reset();
+				toSend[0] = 6;
+			}
+
 			if (Constants::grabLiftInverted) {
 				pickup.setLifter(-Constants::scaleJoysticks(grabStick.GetY(), Constants::liftDeadZone, Constants::liftMax, Constants::liftDegree)); //defines the lifter
 			}
@@ -167,7 +182,7 @@ public:
 
 			if (grabStick.GetRawButton(Constants::liftFloorButton)) {
 				liftHeight = 0;
-        pickup.lifterPosition(liftHeight, isLifting, grabStick);//start lifting thread
+				pickup.lifterPosition(liftHeight, isLifting, grabStick);//start lifting thread
 				liftRan = true;
 			}
 
@@ -222,20 +237,32 @@ public:
 				liftLastState = false;
 			}
 
-
-
-
-
 			if (grabStick.GetRawButton(Constants::grabToteButton)) {//if grab button is pressed
 				grabPower = Constants::grabToteCurrent;
+				backOut = true;
 				if (!isGrabbing) {
-					pickup.grabberGrab(isGrabbing, grabPower, grabStick);//start grabber thread
+					pickup.grabberGrab(isGrabbing, grabPower, backOut, grabStick);//start grabber thread
 				}
 			}
 			else if (grabStick.GetRawButton(Constants::grabBinButton)) {//if grab button is pressed
 				grabPower = Constants::grabBinCurrent;
+
+				backOut = false;
 				if (!isGrabbing) {
-					pickup.grabberGrab(isGrabbing, grabPower, grabStick);//start grabber thread
+					pickup.grabberGrab(isGrabbing, grabPower, backOut, grabStick);//start grabber thread
+				}
+			}
+			else if (grabStick.GetRawButton(Constants::grabChuteButton)) {//if grab button is presset
+				SmartDashboard::PutBoolean("Breakpoint -2", false);
+				SmartDashboard::PutBoolean("Breakpoint -1", false);
+				SmartDashboard::PutBoolean("Breakpoint 0", false);
+				SmartDashboard::PutBoolean("Breakpoint 1", false);
+				SmartDashboard::PutBoolean("Breakpoint 2", false);
+				SmartDashboard::PutBoolean("Breakpoint 3", false);
+				SmartDashboard::PutBoolean("Breakpoint 4", false);
+				//Wait(.5);
+				if (!isGrabbing) {
+					//pickup.grabberChute(isGrabbing, grabStick);//start grabber thread
 				}
 			}
 
@@ -254,14 +281,13 @@ public:
 				numToSend = 1;//sends 1 byte to I2C
 			}
 
-			if(!grabOuterLimit.Get()){ //tells if outer limit is hit with lights
-					switchcounter += .005;
-					if(switchcounter < 1){
-						toSend[0] = 6;
-					}
+			if(!grabOuterLimit.Get()) { //tells if outer limit is hit with lights
+				if(switchTimer.Get() < 1) {
+					toSend[0] = 6;
+				}
 			}
-			else{
-					switchcounter=0;
+			else {
+				switchTimer.Reset();
 			}
 
 			if (driveStick.GetRawButton(Constants::sneakyMoveButton)) {
@@ -283,15 +309,14 @@ public:
 			SmartDashboard::PutNumber("Drive Front Right Current", pdp.GetCurrent(Constants::driveFrontRightPin));
 			SmartDashboard::PutNumber("Drive Rear Left Current", pdp.GetCurrent(Constants::driveRearLeftPin));
 			SmartDashboard::PutNumber("Drive Rear Right Current", pdp.GetCurrent(Constants::driveRearRightPin));
-      SmartDashboard::PutNumber("Throttle", grabStick.GetZ());
+			SmartDashboard::PutNumber("Throttle", grabStick.GetZ());
 
 
 			i2c.Transaction(toSend, 1, toReceive, 0);//send and receive information from arduino over I2C
 			Wait(0.005); // wait 5ms to avoid hogging CPU cycles
 		} //end of teleop
-		toSend[0] = 0; //send 0 to arduino
-		numToSend = 1;
 		isBraking = false;
+		toSend[0] = 0;
 		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
 	}
 
@@ -303,6 +328,7 @@ public:
 		bool isGrabbing = false;
 		double liftHeight = Constants::liftBoxHeight-Constants::liftBoxLip;
 		double grabPower = Constants::grabAutoCurrent;
+		bool backOut;
 
 		uint8_t toSend[1];//array of bytes to send over I2C
 		uint8_t toReceive[0];//array of bytes to receive over I2C
@@ -313,17 +339,17 @@ public:
 
 		bool isSettingUp = true;
 
-		pickup.setGrabber(-1); //open grabber all the way
+		//pickup.setGrabber(-1); //open grabber all the way
 		pickup.setLifter(0.8);
-		
-    while (isSettingUp && IsEnabled() && IsAutonomous()) {
+
+		while (isSettingUp && IsEnabled() && IsAutonomous()) {
 			isSettingUp = false;
-			if (grabOuterLimit.Get() == false) {
+			/*if (grabOuterLimit.Get() == false) {
 				pickup.setGrabber(0); //open until limit
 			}
 			else {
 				isSettingUp = true;
-			}
+			}*/
 
 			if (liftLowerLimit.Get()) {
 				pickup.setLifter(0); //down till bottom
@@ -338,34 +364,38 @@ public:
 		grabEncoder.Reset();
 
 		if (grabStick.GetZ() > .8) {
-					timer.Reset();
-					timer.Start();
-					while (timer.Get() < 1) {
-						robotDrive.MecanumDrive_Cartesian(0, power, 0, gyro.GetAngle());	// drive back
-						if(power>-.4){
-							power-=0.001;
-						}
-					}
-					robotDrive.MecanumDrive_Cartesian(0, 0, 0, gyro.GetAngle());	// STOP!!!
-					timer.Stop();
-					timer.Reset();
-					Wait(1);
+			timer.Reset();
+			timer.Start();
+			while (timer.Get() < 1) {
+				robotDrive.MecanumDrive_Cartesian(0, power, 0, gyro.GetAngle());	// drive back
+				if(power>-.4){
+					power-=0.005;
+					Wait(.005);
 				}
-		power=0;
+			}
+			robotDrive.MecanumDrive_Cartesian(0, 0, 0, gyro.GetAngle());	// STOP!!!
+			timer.Stop();
+			timer.Reset();
+			Wait(1);
+		}
+		power = 0;
 
 		while (isLifting && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
-		
-    pickup.grabberGrab(isGrabbing, grabPower, grabStick);
-    Wait(.005);
+
+		backOut = Constants::autoBackOut;
+		pickup.grabberGrab(isGrabbing, grabPower, backOut, grabStick);
+		Wait(.005);
 
 		while (isGrabbing && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
 
 		liftHeight = 3*Constants::liftBoxHeight;
+		Wait(.005);
 		pickup.lifterPosition(liftHeight, isLifting, grabStick);
+		Wait(.005);
 		while (isLifting && IsEnabled() && IsAutonomous()) {
 			Wait(.005);
 		}
@@ -400,12 +430,24 @@ public:
 		robotDrive.MecanumDrive_Cartesian(0,0,0); ///STOP!!!
 
 		timer.Stop();
+		toSend[0] = 8;
+		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
 
-		toSend[0] = 0;//set the byte to send to 1
-		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);//send over I2C
+		while(IsAutonomous() && IsEnabled());
+
+		toSend[0] = 0;
+		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
 	}
 
 	void Test() {
+		robotDrive.SetSafetyEnabled(false);
+		uint8_t toSend[10];//array of bytes to send over I2C
+		uint8_t toReceive[10];//array of bytes to receive over I2C
+		uint8_t numToSend = 1;//number of bytes to send
+		uint8_t numToReceive = 0;//number of bytes to receive
+		toSend[0] = 7; //send 0 to arduino
+		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
+
 		bool isSettingUp = true;
 
 		pickup.setGrabber(-1);
@@ -430,6 +472,13 @@ public:
 		liftEncoder.Reset();
 		grabEncoder.Reset();
 
+		toSend[0] = 8;
+		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
+
+		while(IsTest() && IsEnabled());
+
+		toSend[0] = 0;
+		i2c.Transaction(toSend, numToSend, toReceive, numToReceive);
 	}
 
 };
