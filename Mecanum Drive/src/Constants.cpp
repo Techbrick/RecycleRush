@@ -37,13 +37,14 @@ public:
 
 
 	//PDP Ports
-	const static constexpr int grabPdpChannel = 15;
+	const static constexpr int grabPdpChannel = 11;
 	const static constexpr int ledPdpChannel = 13;
 	const static constexpr int liftPdpChannel = 14;
 
 
 	//Drive Stick
 	const static constexpr int driveStickChannel = 0;
+
 	/*const static constexpr int driveXAxis = 0;
 	const static constexpr int driveYAxis = 1;
 	const static constexpr int driveZAxis = 5;
@@ -51,24 +52,41 @@ public:
 	const static constexpr int driveOneAxisButton = 7;
 	const static constexpr int driveXYButton = 5;
 	const static constexpr int driveFieldLockButton = 1;*/
+
+	// Drive with controller
+	/*
+	const static constexpr int driveXAxis = 0;
+	const static constexpr int driveYAxis = 1;
+	const static constexpr int driveZAxis = 4;
+	const static constexpr int driveThrottleAxis = 3;
+	const static constexpr int driveOneAxisButton = 4;
+	const static constexpr int driveXYButton = 0;
+	const static constexpr int driveFieldLockButton = 1;
+	const static constexpr int sneakyMoveButton = 3;
+	 */
+
 	const static constexpr int driveXAxis = 0;
 	const static constexpr int driveYAxis = 1;
 	const static constexpr int driveZAxis = 2;
 	const static constexpr int driveThrottleAxis = 3;
 	const static constexpr int driveOneAxisButton = 11;
-	const static constexpr int driveXYButton = 2;
-	const static constexpr int driveFieldLockButton = 1;
+	const static constexpr int driveXYButton = 1;
+	const static constexpr int driveFieldLockButton = 2;
+	const static constexpr int sneakyMoveButton = 4;
 
 
 	//Grab Stick
 	const static constexpr bool grabLiftInverted = false;
 	const static constexpr int grabStickChannel	= 1;
 	const static constexpr int pickupCancelButton = 2;
-	const static constexpr int grabToteButton = 5;
-	const static constexpr int grabBinButton = 4;
+	const static constexpr int grabChuteButton = 1;
+	const static constexpr int grabToteButton = 4;
+	const static constexpr int grabBinButton = 5;
 	const static constexpr int liftButton = 3;
 	const static constexpr int liftRampButton = 6;
 	const static constexpr int liftStepButton = 7;
+	const static constexpr int liftFloorButton = 8;
+	const static constexpr int liftCycleButton = 9;
 
 
 	//Joystick Scaling Constants
@@ -79,7 +97,7 @@ public:
 	const static constexpr float driveYMax = 1;
 	const static constexpr int driveYDegree = 1;
 	const static constexpr float driveZDeadZone = .2;
-	const static constexpr float driveZMax = .5;
+	const static constexpr float driveZMax = .375;
 	const static constexpr int driveZDegree = 1;
 	const static constexpr float grabDeadZone = .2;
 	const static constexpr float grabMax = 1;
@@ -92,12 +110,14 @@ public:
 	const static constexpr int liftEncoderTicks = 360;
 	const static constexpr int grabEncoderTicks = 2048;
 	const static constexpr bool liftEncoderReverse = true;
-	const static constexpr float liftEncoderRadius = 1.4722936;
-	const static constexpr float liftEncoderBase = 8.875;
+	const static constexpr float liftEncoderRadius = .716197244;
+	const static constexpr float liftEncoderBase = 20;
 	const static constexpr float grabDelay = .25;
-	const static constexpr int grabToteCurrent = 10;
-	const static constexpr int grabBinCurrent = 15;
-	const static constexpr int grabAutoCurrent = 10;
+	const static constexpr float grabChuteTime = 3;
+	const static constexpr int grabToteCurrent = 15;
+	const static constexpr int grabBinCurrent = 18;
+	const static constexpr int grabManualCurrent = 18;
+	const static constexpr int grabAutoCurrent = 18;
 	const static constexpr float liftDelay = .2;
 	const static constexpr int liftCurrent = 100;
 	const static constexpr float ultrasonicVoltageToInches = 512.0/5;
@@ -108,17 +128,19 @@ public:
 	const static constexpr int liftStepHeight = 8.5;
 	const static constexpr float liftBoxHeight = 12;
 	const static constexpr float liftBoxLip = 3.5;
-	const static constexpr bool liftBrakeIsEnabled = false;
-	const static constexpr float liftBrakeP = -0.06;
+	const static constexpr bool liftBrakeIsEnabled = true;
+	const static constexpr float liftBrakeP = -0.006;
 	const static constexpr float liftBrakeI = -0.0;
-	const static constexpr float liftBrakeD = -0.0;
+	const static constexpr float liftBrakeD = -0.01;
 	const static constexpr float liftBrakeUpPower = -0.1;
 	const static constexpr float liftBrakeUpTime = 0.25;
+	const static constexpr float liftBackoutTime = .5;
 	const static constexpr float driveGyroTeleopOffset = 180;
-	const static constexpr float autoBackupDistance = 144;
+	const static constexpr float autoBackupDistance = 130;
 	const static constexpr float autoMaxDriveTime = 4;
 	const static constexpr float autoBrakeTime = .25;
 	const static constexpr float autoBrakePower = -.05;
+	const static constexpr bool autoBackOut = false;
 
 	Constants() {}
 
