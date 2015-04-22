@@ -355,6 +355,17 @@ public:
 			robotDrive.MecanumDrive_Cartesian(0,Constants::autoBrakePower,0); ///Brake
 		}
 
+		float turn = 0;
+
+		while (fabs(turn) < 85 && IsEnabled() && IsAutonomous())  { //turn 90(ish) degrees
+			robotDrive.MecanumDrive_Cartesian(0,0,.1);
+			turn = gyro.GetAngle();
+			if (turn > 180) {
+				turn -= 360;
+			}
+		}
+
+
 		robotDrive.MecanumDrive_Cartesian(0,0,0); ///STOP!!!
 
 		timer.Stop();
