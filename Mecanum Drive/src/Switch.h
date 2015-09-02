@@ -2,7 +2,7 @@
  * Switch.h
  *
  *  Created on: Jan 17, 2015
- *      Author: Mitchell
+ *      Author: Mitchell Roberts
  */
 
 #ifndef SRC_SWITCH_H_
