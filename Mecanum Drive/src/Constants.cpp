@@ -136,7 +136,7 @@ public:
 	const static constexpr float liftBrakeUpTime = 0.25;
 	const static constexpr float liftBackoutTime = .5;
 	const static constexpr float driveGyroTeleopOffset = 180;
-	const static constexpr float autoBackupDistance = 130;
+	const static constexpr float autoBackupDistance = 180;
 	const static constexpr float autoMaxDriveTime = 4;
 	const static constexpr float autoBrakeTime = .25;
 	const static constexpr float autoBrakePower = -.05;
